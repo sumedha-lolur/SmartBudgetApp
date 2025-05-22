@@ -1,0 +1,5 @@
+/* HomePage.css */
+.home-page {
+    margin-top: 60px; /* To prevent content from being hidden behind the fixed navbar */
+  }
+  

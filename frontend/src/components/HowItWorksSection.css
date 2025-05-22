@@ -1,0 +1,40 @@
+/* HowItWorksSection.css */
+.how-it-works {
+    padding: 4rem 2rem;
+    text-align: center;
+    
+  }
+  
+  .how-it-works h2 {
+    font-size: 2rem;
+    margin-bottom: 2rem;
+
+  }
+  
+  .steps {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 2rem;
+  }
+  
+  .step {
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    flex: 1 1 200px;
+    text-align: center;
+    transition: transform 0.3s ease;
+    color: black;
+  }
+  
+  .step:hover {
+    transform: scale(1.05);
+    background-color: #4CAF50;
+  }
+  .step h3 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  

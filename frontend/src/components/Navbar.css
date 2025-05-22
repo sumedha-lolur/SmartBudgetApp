@@ -1,0 +1,287 @@
+/* Navbar.css */
+.navbar {
+    background-color: #333;
+    color: #fff;
+    padding: 1rem;
+    position: fixed;
+    width: 100%;
+    top: 0;
+    left: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    z-index: 1000; /* Ensure navbar stays on top */
+    transition: all 0.3s ease;
+}
+
+.navbar.scrolled {
+    padding: 0.5rem 1rem;
+    background-color: rgba(51, 51, 51, 0.95);
+    backdrop-filter: blur(5px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+  
+.navbar .container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* This ensures proper spacing */
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+    position: relative;
+}
+  
+.navbar .logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+    text-decoration: none;
+    color: #4CAF50;
+    white-space: nowrap; /* Prevent logo text from wrapping */
+    z-index: 1001; /* Ensure logo stays above mobile menu */
+}
+
+.nav-menu {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: calc(100% - 180px); /* Adjust based on logo width */
+}
+
+.nav-links {
+    display: flex;
+    align-items: center;
+    margin: 0 1rem;
+}
+  
+.nav-links a {
+    margin: 0 1rem;
+    color: #fff;
+    text-decoration: none;
+    white-space: nowrap; /* Prevent link text from wrapping */
+    font-weight: 500;
+    transition: color 0.2s ease;
+    position: relative;
+}
+
+.nav-links a::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background-color: #4CAF50;
+    transition: width 0.3s ease;
+}
+  
+.nav-links a:hover {
+    color: #4CAF50;
+}
+
+.nav-links a:hover::after {
+    width: 100%;
+}
+  
+.nav-actions {
+    display: flex;
+    align-items: center;
+}
+
+.nav-actions a {
+    margin: 0 0.75rem;
+    color: #fff;
+    text-decoration: none;
+    white-space: nowrap; /* Prevent link text from wrapping */
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.nav-actions a:hover {
+    color: #4CAF50;
+}
+  
+.nav-actions .signup-button {
+    background-color: #4CAF50;
+    color: #fff;
+    padding: 0.6rem 1.2rem;
+    border-radius: 24px;
+    box-shadow: 0 2px 5px rgba(76, 175, 80, 0.3);
+}
+  
+.nav-actions .signup-button:hover {
+    background-color: #45a049;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(76, 175, 80, 0.4);
+}
+
+/* Hamburger Menu */
+.hamburger {
+    display: none;
+    cursor: pointer;
+    z-index: 1001;
+}
+
+.bar {
+    display: block;
+    width: 25px;
+    height: 3px;
+    margin: 5px auto;
+    -webkit-transition: all 0.3s ease-in-out;
+    transition: all 0.3s ease-in-out;
+    background-color: #fff;
+    border-radius: 2px;
+}
+
+/* Responsive styles for smaller screens */
+@media (max-width: 992px) {
+    .nav-links a {
+        margin: 0 0.5rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .navbar .container {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+    
+    .navbar .logo {
+        margin-right: auto; /* Push logo to the left */
+    }
+
+    .nav-links {
+        order: 3; /* Move nav links below on small screens */
+        width: 100%;
+        justify-content: center;
+        margin-top: 0.5rem;
+    }
+
+    .nav-actions {
+        margin-left: auto; /* Push actions to the right */
+    }
+    
+    .nav-links a {
+        margin: 0 0.5rem;
+        font-size: 0.9rem;
+    }
+
+    /* Show hamburger menu */
+    .hamburger {
+        display: block;
+    }
+    
+    /* Animate hamburger to X when active */
+    .hamburger.active .bar:nth-child(2) {
+        opacity: 0;
+    }
+    
+    .hamburger.active .bar:nth-child(1) {
+        transform: translateY(8px) rotate(45deg);
+    }
+    
+    .hamburger.active .bar:nth-child(3) {
+        transform: translateY(-8px) rotate(-45deg);
+    }
+    
+    /* Mobile menu styles */
+    .nav-menu {
+        position: fixed;
+        top: 0;
+        right: -100%;
+        width: 80%;
+        max-width: 400px;
+        height: 100vh;
+        background: #333;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: flex-start;
+        padding: 5rem 2rem 2rem;
+        transition: 0.4s ease;
+        box-shadow: -5px 0 15px rgba(0, 0, 0, 0.2);
+        overflow-y: auto;
+        z-index: 1000;
+    }
+    
+    .nav-menu.active {
+        right: 0;
+    }
+    
+    .nav-links {
+        flex-direction: column;
+        align-items: flex-start;
+        width: 100%;
+        margin: 0;
+    }
+    
+    .nav-links a {
+        margin: 1rem 0;
+        font-size: 1.2rem;
+        display: block;
+        width: 100%;
+    }
+
+    .nav-links a::after {
+        display: none;
+    }
+    
+    .nav-actions {
+        flex-direction: column;
+        align-items: flex-start;
+        width: 100%;
+        margin-top: 2rem;
+    }
+    
+    .nav-actions a {
+        margin: 0.75rem 0;
+        font-size: 1.2rem;
+        display: block;
+        width: 100%;
+    }
+    
+    .nav-actions .signup-button {
+        margin: 1rem 0;
+        width: 100%;
+        text-align: center;
+    }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+    .navbar {
+        padding: 0.75rem 0.5rem;
+    }
+    
+    .navbar.scrolled {
+        padding: 0.5rem 1rem;
+    }
+    
+    .navbar .logo {
+        font-size: 1.2rem;
+    }
+    
+    .nav-links a, .nav-actions a {
+        font-size: 0.8rem;
+        margin: 0 0.3rem;
+    }
+    
+    .nav-actions .signup-button {
+        padding: 0.4rem 0.75rem;
+    }
+
+    .nav-menu {
+        width: 100%;
+        padding: 5rem 1.5rem 2rem;
+    }
+    
+    .nav-links a, 
+    .nav-actions a {
+        font-size: 1rem;
+    }
+    
+    /* Overlay when menu is open */
+    body.menu-open {
+        overflow: hidden;
+    }
+}

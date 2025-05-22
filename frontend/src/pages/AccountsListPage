@@ -1,0 +1,244 @@
+import React, { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import DashboardNav from "../components/DashboardNav";
+import Footer from "../components/Footer";
+import "./AccountsListPage.css";
+
+// Sample account data (in a real app, this would come from an API)
+const sampleAccounts = [
+  {
+    id: 1,
+    name: "Chase Checking",
+    type: "Checking",
+    balance: 2450.75,
+    currency: "USD",
+    isDefault: true
+  },
+  {
+    id: 2,
+    name: "Savings Account",
+    type: "Savings",
+    balance: 12500.00,
+    currency: "USD",
+    isDefault: false
+  },
+  {
+    id: 3,
+    name: "Visa Credit Card",
+    type: "Credit",
+    balance: -750.25,
+    currency: "USD",
+    isDefault: false
+  },
+  {
+    id: 4,
+    name: "Investment Portfolio",
+    type: "Investment",
+    balance: 8750.50,
+    currency: "USD",
+    isDefault: false
+  }
+];
+
+const AccountsListPage = () => {
+  const navigate = useNavigate();
+  const [accounts, setAccounts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState("all");
+  const [netWorth, setNetWorth] = useState(0);
+  const [totalAssets, setTotalAssets] = useState(0);
+  const [totalLiabilities, setTotalLiabilities] = useState(0);
+
+  // Fetch accounts data
+  useEffect(() => {
+    // In a real app, this would be an API call
+    setTimeout(() => {
+      setAccounts(sampleAccounts);
+      setLoading(false);
+    }, 800);
+  }, []);
+
+  // Calculate financial summaries
+  useEffect(() => {
+    if (accounts.length > 0) {
+      const assets = accounts.reduce((sum, account) => {
+        return account.balance > 0 ? sum + account.balance : sum;
+      }, 0);
+      
+      const liabilities = accounts.reduce((sum, account) => {
+        return account.balance < 0 ? sum + Math.abs(account.balance) : sum;
+      }, 0);
+      
+      setTotalAssets(assets);
+      setTotalLiabilities(liabilities);
+      setNetWorth(assets - liabilities);
+    }
+  }, [accounts]);
+
+  // Filter accounts based on selected filter
+  const getFilteredAccounts = () => {
+    if (filter === "all") return accounts;
+    if (filter === "assets") return accounts.filter(account => account.balance >= 0);
+    if (filter === "liabilities") return accounts.filter(account => account.balance < 0);
+    return accounts.filter(account => account.type === filter);
+  };
+
+  // Handle account deletion
+  const handleDeleteAccount = (id) => {
+    if (window.confirm("Are you sure you want to delete this account? This action cannot be undone.")) {
+      // In a real app, this would be an API call
+      setAccounts(accounts.filter(account => account.id !== id));
+      alert("Account deleted successfully");
+    }
+  };
+
+  return (
+    <div className="accounts-page">
+      <DashboardNav />
+      <main className="accounts-container">
+        <div className="page-header">
+          <h1>Your Accounts</h1>
+          <button 
+            className="add-account-btn"
+            onClick={() => navigate("/add-account")}
+          >
+            <i className="fas fa-plus"></i> Add New Account
+          </button>
+        </div>
+        
+        <div className="accounts-summary">
+          <div className="summary-card net-worth">
+            <h3>Net Worth</h3>
+            <p className={netWorth >= 0 ? "positive" : "negative"}>
+              ${netWorth.toFixed(2)}
+            </p>
+          </div>
+          <div className="summary-card assets">
+            <h3>Total Assets</h3>
+            <p className="positive">${totalAssets.toFixed(2)}</p>
+          </div>
+          <div className="summary-card liabilities">
+            <h3>Total Liabilities</h3>
+            <p className="negative">${totalLiabilities.toFixed(2)}</p>
+          </div>
+        </div>
+        
+        <div className="accounts-filter">
+          <button 
+            className={filter === "all" ? "active" : ""} 
+            onClick={() => setFilter("all")}
+          >
+            All Accounts
+          </button>
+          <button 
+            className={filter === "assets" ? "active" : ""} 
+            onClick={() => setFilter("assets")}
+          >
+            Assets
+          </button>
+          <button 
+            className={filter === "liabilities" ? "active" : ""} 
+            onClick={() => setFilter("liabilities")}
+          >
+            Liabilities
+          </button>
+          <button 
+            className={filter === "Checking" ? "active" : ""} 
+            onClick={() => setFilter("Checking")}
+          >
+            Checking
+          </button>
+          <button 
+            className={filter === "Savings" ? "active" : ""} 
+            onClick={() => setFilter("Savings")}
+          >
+            Savings
+          </button>
+          <button 
+            className={filter === "Credit" ? "active" : ""} 
+            onClick={() => setFilter("Credit")}
+          >
+            Credit
+          </button>
+        </div>
+        
+        <div className="accounts-list">
+          {loading ? (
+            <div className="loading">
+              <i className="fas fa-spinner fa-spin"></i>
+              <p>Loading your accounts...</p>
+            </div>
+          ) : getFilteredAccounts().length > 0 ? (
+            getFilteredAccounts().map(account => (
+              <div 
+                key={account.id} 
+                className={`account-card ${account.isDefault ? "default-account" : ""}`}
+              >
+                {account.isDefault && (
+                  <span className="default-badge">Default</span>
+                )}
+                <div className="account-icon">
+                  {account.type === "Checking" && <i className="fas fa-wallet"></i>}
+                  {account.type === "Savings" && <i className="fas fa-piggy-bank"></i>}
+                  {account.type === "Credit" && <i className="fas fa-credit-card"></i>}
+                  {account.type === "Investment" && <i className="fas fa-chart-line"></i>}
+                  {account.type === "Loan" && <i className="fas fa-hand-holding-usd"></i>}
+                  {account.type === "Cash" && <i className="fas fa-money-bill-wave"></i>}
+                  {account.type === "Other" && <i className="fas fa-university"></i>}
+                </div>
+                <div className="account-info">
+                  <h3>{account.name}</h3>
+                  <p className="account-type">{account.type}</p>
+                </div>
+                <div className="account-balance">
+                  <p className={account.balance >= 0 ? "positive" : "negative"}>
+                    {account.balance >= 0 ? "+" : "-"}${Math.abs(account.balance).toFixed(2)}
+                  </p>
+                </div>
+                <div className="account-actions">
+                  <button 
+                    className="view-btn"
+                    onClick={() => navigate(`/account/${account.id}`)}
+                  >
+                    <i className="fas fa-eye"></i>
+                  </button>
+                  <button 
+                    className="edit-btn"
+                    onClick={() => navigate(`/edit-account/${account.id}`)}
+                  >
+                    <i className="fas fa-edit"></i>
+                  </button>
+                  <button 
+                    className="delete-btn"
+                    onClick={() => handleDeleteAccount(account.id)}
+                  >
+                    <i className="fas fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="no-accounts">
+              <i className="fas fa-university"></i>
+              <h3>No accounts found</h3>
+              <p>
+                {filter !== "all" 
+                  ? "Try changing your filter or add a new account" 
+                  : "Add your first account to get started"}
+              </p>
+              <button 
+                className="add-account-btn"
+                onClick={() => navigate("/add-account")}
+              >
+                <i className="fas fa-plus"></i> Add New Account
+              </button>
+            </div>
+          )}
+        </div>
+      </main>
+      <Footer />
+    </div>
+  );
+};
+
+export default AccountsListPage;
