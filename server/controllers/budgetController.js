@@ -304,6 +304,31 @@ const getBudgetSummary = async (req, res, next) => {
  * Helper function to calculate amount spent in a category during a time period
  */
 const calculateSpentAmount = async (userId, category, startDate, endDate) => {
+  // First, check if we have tracking info for this budget
+  const BudgetTracking = require('../models/budgetTrackingModel');
+  const Budget = require('../models/budgetModel');
+  
+  // Find the budget for this category and date range
+  const budget = await Budget.findOne({
+    user: userId,
+    category,
+    startDate: { $lte: endDate },
+    endDate: { $gte: startDate },
+  });
+  
+  if (budget) {
+    // Check if we have tracking info
+    const tracking = await BudgetTracking.findOne({
+      budget: budget._id
+    });
+    
+    if (tracking) {
+      console.log(`Using budget tracking data for ${category}: ${tracking.spentAmount}`);
+      return tracking.spentAmount;
+    }
+  }
+  
+  // Fallback to calculating from transactions
   const transactions = await Transaction.find({
     user: userId,
     category,
@@ -314,6 +339,17 @@ const calculateSpentAmount = async (userId, category, startDate, endDate) => {
   console.log(`Found ${transactions.length} transactions for category ${category}`);
   const total = transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
   console.log(`Total spent for ${category}: ${total}`);
+  
+  // If we found a budget but no tracking, create one now
+  if (budget && total > 0) {
+    await BudgetTracking.create({
+      budget: budget._id,
+      user: userId,
+      spentAmount: total
+    });
+    console.log(`Created budget tracking for ${category} with amount ${total}`);
+  }
+  
   return total;
 };
 

@@ -43,11 +43,16 @@ function App() {
             <ProtectedRoute>
               <TransactionsPage />
             </ProtectedRoute>
-          } />        {/* <Route path="/accounts" element={
+          } />          <Route path="/edit-account/:id" element={
             <ProtectedRoute>
-              <AccountsListPage />
+              <AddAccountPage />
             </ProtectedRoute>
-          } /> */}
+          } />
+          <Route path="/accounts" element={
+            <ProtectedRoute>
+              <DashboardPage />
+            </ProtectedRoute>
+          } />
           {/* Add more routes as needed */}
         </Routes>
       </Router>

@@ -2,52 +2,14 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import DashboardNav from "../components/DashboardNav";
 import Footer from "../components/Footer";
+import { useAuth } from "../contexts/AuthContext";
 import "./AddAccountPage.css";
-
-// Sample account data for editing (in a real app, this would come from an API)
-const sampleAccounts = [
-  {
-    id: 1,
-    name: "Chase Checking",
-    type: "Checking",
-    balance: 2450.75,
-    currency: "USD",
-    isDefault: true,
-    notes: "Primary checking account for daily expenses"
-  },
-  {
-    id: 2,
-    name: "Savings Account",
-    type: "Savings",
-    balance: 12500.00,
-    currency: "USD",
-    isDefault: false,
-    notes: "Emergency fund savings"
-  },
-  {
-    id: 3,
-    name: "Visa Credit Card",
-    type: "Credit",
-    balance: -750.25,
-    currency: "USD",
-    isDefault: false,
-    notes: "Credit card for online purchases"
-  },
-  {
-    id: 4,
-    name: "Investment Portfolio",
-    type: "Investment",
-    balance: 8750.50,
-    currency: "USD",
-    isDefault: false,
-    notes: "Long-term investments"
-  }
-];
 
 const AddAccountPage = () => {
   const navigate = useNavigate();
   const { id } = useParams(); // Get account ID from URL if in edit mode
   const isEditMode = !!id;
+  const { currentUser } = useAuth();
   
   const [formData, setFormData] = useState({
     accountName: "",
@@ -64,30 +26,44 @@ const AddAccountPage = () => {
 
   // Fetch account data if in edit mode
   useEffect(() => {
-    if (isEditMode) {
-      // In a real app, you'd fetch this from an API
-      setTimeout(() => {
-        const accountToEdit = sampleAccounts.find(account => account.id === parseInt(id));
-        
-        if (accountToEdit) {
-          setFormData({
-            accountName: accountToEdit.name,
-            accountType: accountToEdit.type,
-            initialBalance: accountToEdit.balance.toString(),
-            currency: accountToEdit.currency,
-            isDefault: accountToEdit.isDefault,
-            notes: accountToEdit.notes || ""
+    if (isEditMode && currentUser) {
+      const fetchAccountData = async () => {
+        try {
+          const response = await fetch(`/api/accounts/${id}`, {
+            headers: {
+              'Authorization': `Bearer ${currentUser.token}`,
+              'Content-Type': 'application/json'
+            }
           });
-        } else {
-          // Account not found
-          alert("Account not found!");
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('API error response:', errorText);
+            throw new Error('Failed to fetch account data');
+          }
+          
+          const account = await response.json();
+          
+          setFormData({
+            accountName: account.name,
+            accountType: account.type,
+            initialBalance: account.balance.toString(),
+            currency: account.currency,
+            isDefault: false, // API doesn't have this field yet
+            notes: account.description || ""
+          });
+          
+          setIsLoading(false);
+        } catch (error) {
+          console.error('Error fetching account:', error);
+          alert("Failed to fetch account details.");
           navigate("/accounts");
         }
-        
-        setIsLoading(false);
-      }, 500);
+      };
+
+      fetchAccountData();
     }
-  }, [id, isEditMode, navigate]);
+  }, [id, isEditMode, navigate, currentUser]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -108,7 +84,7 @@ const AddAccountPage = () => {
       errors.initialBalance = "Initial balance is required";
     } else if (isNaN(parseFloat(formData.initialBalance))) {
       errors.initialBalance = "Please enter a valid number";
-    } else if (formData.accountType !== "Credit" && parseFloat(formData.initialBalance) < 0) {
+    } else if (formData.accountType !== "Credit Card" && parseFloat(formData.initialBalance) < 0) {
       errors.initialBalance = "Initial balance cannot be negative for non-credit accounts";
     }
     return errors;
@@ -116,6 +92,13 @@ const AddAccountPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!currentUser) {
+      alert("You must be logged in to perform this action");
+      navigate("/login");
+      return;
+    }
+    
     const errors = validateForm();
     setFormErrors(errors);
     
@@ -123,11 +106,58 @@ const AddAccountPage = () => {
       setIsSubmitting(true);
       
       try {
-        // In a real app, you'd send this to a backend API
-        console.log("Form submitted:", formData);
+        // Prepare data for API
+        const accountData = {
+          name: formData.accountName,
+          type: formData.accountType,
+          balance: parseFloat(formData.initialBalance),
+          currency: formData.currency,
+          description: formData.notes
+        };
         
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        console.log('Sending account data:', accountData);
+        console.log('Auth token:', currentUser?.token);
+        
+        let response;
+        
+        if (isEditMode) {
+          // Update existing account
+          response = await fetch(`/api/accounts/${id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${currentUser.token}`
+            },
+            body: JSON.stringify(accountData)
+          });
+        } else {
+          // Create new account
+          response = await fetch('/api/accounts', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${currentUser.token}`
+            },
+            body: JSON.stringify(accountData)
+          });
+        }
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('API error response:', errorText);
+          
+          try {
+            // Try to parse as JSON if possible
+            const errorData = JSON.parse(errorText);
+            throw new Error(errorData.message || 'Failed to save account');
+          } catch (e) {
+            // If not valid JSON, use the text response
+            throw new Error(`Failed to save account: ${errorText.substring(0, 100)}...`);
+          }
+        }
+        
+        const savedAccount = await response.json();
+        console.log('Account saved:', savedAccount);
         
         // Show success notification
         if (isEditMode) {
@@ -140,7 +170,7 @@ const AddAccountPage = () => {
         navigate("/accounts");
       } catch (error) {
         console.error("Error submitting form:", error);
-        alert(`There was an error ${isEditMode ? "updating" : "adding"} your account. Please try again.`);
+        alert(`There was an error ${isEditMode ? "updating" : "adding"} your account: ${error.message}`);
       } finally {
         setIsSubmitting(false);
       }
@@ -210,9 +240,8 @@ const AddAccountPage = () => {
                   <option value="">Select Account Type</option>
                   <option value="Checking">Checking</option>
                   <option value="Savings">Savings</option>
-                  <option value="Credit">Credit Card</option>
+                  <option value="Credit Card">Credit Card</option>
                   <option value="Investment">Investment</option>
-                  <option value="Loan">Loan</option>
                   <option value="Cash">Cash</option>
                   <option value="Other">Other</option>
                 </select>
