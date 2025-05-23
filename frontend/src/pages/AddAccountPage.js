@@ -29,7 +29,7 @@ const AddAccountPage = () => {
     if (isEditMode && currentUser) {
       const fetchAccountData = async () => {
         try {
-          const response = await fetch(`/api/accounts/${id}`, {
+          const response = await fetch(`http://localhost:5000/api/accounts/${id}`, {
             headers: {
               'Authorization': `Bearer ${currentUser.token}`,
               'Content-Type': 'application/json'
@@ -119,10 +119,9 @@ const AddAccountPage = () => {
         console.log('Auth token:', currentUser?.token);
         
         let response;
-        
-        if (isEditMode) {
+          if (isEditMode) {
           // Update existing account
-          response = await fetch(`/api/accounts/${id}`, {
+          response = await fetch(`http://localhost:5000/api/accounts/${id}`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -132,7 +131,7 @@ const AddAccountPage = () => {
           });
         } else {
           // Create new account
-          response = await fetch('/api/accounts', {
+          response = await fetch('http://localhost:5000/api/accounts', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -165,9 +164,8 @@ const AddAccountPage = () => {
         } else {
           alert("Account added successfully!");
         }
-        
-        // Redirect to accounts page
-        navigate("/accounts");
+          // Redirect to dashboard page
+        navigate("/dashboard");
       } catch (error) {
         console.error("Error submitting form:", error);
         alert(`There was an error ${isEditMode ? "updating" : "adding"} your account: ${error.message}`);
@@ -176,9 +174,8 @@ const AddAccountPage = () => {
       }
     }
   };
-
   const handleCancel = () => {
-    navigate("/accounts");
+    navigate("/dashboard");
   };
 
   if (isLoading) {

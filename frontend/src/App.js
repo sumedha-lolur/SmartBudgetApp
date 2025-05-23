@@ -48,6 +48,11 @@ function App() {
               <AddAccountPage />
             </ProtectedRoute>
           } />
+          <Route path="/edit-budget/:id" element={
+            <ProtectedRoute>
+              <BudgetFormPage />
+            </ProtectedRoute>
+          } />
           <Route path="/accounts" element={
             <ProtectedRoute>
               <DashboardPage />

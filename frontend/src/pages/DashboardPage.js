@@ -19,6 +19,10 @@ const DashboardPage = () => {
   const [accounts, setAccounts] = useState([]);
   const [budgets, setBudgets] = useState([]);
   const [transactions, setTransactions] = useState([]);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedAccount, setSelectedAccount] = useState(null);
+  const [showDeleteBudgetModal, setShowDeleteBudgetModal] = useState(false);
+  const [selectedBudget, setSelectedBudget] = useState(null);
   
   // Fetch user's data from the backend
   useEffect(() => {
@@ -84,6 +88,93 @@ const DashboardPage = () => {
   const totalSpent = budgets?.length ? budgets.reduce((sum, budget) => sum + (Number(budget.spent) || 0), 0) : 0;
   console.log('Total budgeted:', totalBudgeted, 'Total spent:', totalSpent);
   const remainingBudget = totalBudgeted - totalSpent;
+    // Handle editing an account
+  const handleEditAccount = (account) => {
+    // Navigate to edit account page with the account ID
+    window.location.href = `/edit-account/${account._id}`;
+  };
+
+  // Handle opening the delete confirmation modal for accounts
+  const handleDeleteClick = (account) => {
+    setSelectedAccount(account);
+    setShowDeleteModal(true);
+  };
+
+  // Handle confirming account deletion
+  const handleConfirmDelete = async () => {
+    if (!selectedAccount) return;
+    
+    try {
+      const response = await fetch(`http://localhost:5000/api/accounts/${selectedAccount._id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${currentUser.token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete account');
+      }
+      
+      // Remove the deleted account from state
+      setAccounts(accounts.filter(account => account._id !== selectedAccount._id));
+      setShowDeleteModal(false);
+      setSelectedAccount(null);
+    } catch (err) {
+      console.error('Error deleting account:', err);
+      alert('Failed to delete account. Please try again.');
+    }
+  };
+
+  // Cancel delete operation for accounts
+  const handleCancelDelete = () => {
+    setShowDeleteModal(false);
+    setSelectedAccount(null);
+  };
+
+  // Handle editing a budget
+  const handleEditBudget = (budget) => {
+    // Navigate to edit budget page with the budget ID
+    window.location.href = `/edit-budget/${budget._id}`;
+  };
+
+  // Handle opening the delete budget confirmation modal
+  const handleDeleteBudgetClick = (budget) => {
+    setSelectedBudget(budget);
+    setShowDeleteBudgetModal(true);
+  };
+
+  // Handle confirming budget deletion
+  const handleConfirmBudgetDelete = async () => {
+    if (!selectedBudget) return;
+    
+    try {
+      const response = await fetch(`http://localhost:5000/api/budgets/${selectedBudget._id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${currentUser.token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete budget');
+      }
+      
+      // Remove the deleted budget from state
+      setBudgets(budgets.filter(budget => budget._id !== selectedBudget._id));
+      setShowDeleteBudgetModal(false);
+      setSelectedBudget(null);
+    } catch (err) {
+      console.error('Error deleting budget:', err);
+      alert('Failed to delete budget. Please try again.');
+    }
+  };
+
+  // Cancel budget delete operation
+  const handleCancelBudgetDelete = () => {
+    setShowDeleteBudgetModal(false);
+    setSelectedBudget(null);
+  };
   
   // Get recent transactions (most recent 5)
   const recentTransactions = transactions?.length 
@@ -187,22 +278,46 @@ const DashboardPage = () => {
             </section>
             
             <section className="dashboard-section">
-              <h2>Budget Categories</h2>
-              <div className="budget-categories" id="goals-section">
+              <h2>Budget Categories</h2>              <div className="budget-categories" id="goals-section">
                 {budgets.length > 0 ? (
                   budgets.map(budget => (
-                    <div className="budget-category" key={budget._id}>                      <div className="category-header">
-                        <h3>{budget.category || 'Uncategorized'}</h3>
-                        <p>${formatCurrency(budget.spent)} / ${formatCurrency(budget.amount)}</p>
+                    <div className="budget-category" key={budget._id}>
+                      <div className="budget-content">                        <div className="category-header">
+                          <div className="category-title">
+                            <h3>{budget.name || budget.category || 'Uncategorized'}</h3>
+                            {budget.name && budget.category && budget.name !== budget.category && 
+                              <span className="category-tag">{budget.category}</span>
+                            }
+                          </div>
+                          <p>${formatCurrency(budget.spent)} / ${formatCurrency(budget.amount)}</p>
+                        </div>
+                        <div className="category-progress">
+                          <div 
+                            className="category-progress-bar" 
+                            style={{ 
+                              width: `${Number(budget.amount) > 0 ? Math.min((Number(budget.spent || 0) / Number(budget.amount)) * 100, 100) : 0}%`,
+                              backgroundColor: Number(budget.spent || 0) > Number(budget.amount || 0) ? '#e74c3c' : '#3498db' 
+                            }}
+                          ></div>
+                        </div>
                       </div>
-                      <div className="category-progress">
-                        <div 
-                          className="category-progress-bar" 
-                          style={{ 
-                            width: `${Number(budget.amount) > 0 ? Math.min((Number(budget.spent || 0) / Number(budget.amount)) * 100, 100) : 0}%`,
-                            backgroundColor: Number(budget.spent || 0) > Number(budget.amount || 0) ? '#e74c3c' : '#3498db' 
-                          }}
-                        ></div>
+                      <div className="budget-actions">
+                        <button 
+                          className="action-btn edit-btn" 
+                          onClick={() => handleEditBudget(budget)}
+                          aria-label="Edit budget"
+                          title="Edit budget"
+                        >
+                          ✏️
+                        </button>
+                        <button 
+                          className="action-btn delete-btn" 
+                          onClick={() => handleDeleteBudgetClick(budget)}
+                          aria-label="Delete budget"
+                          title="Delete budget"
+                        >
+                          🗑️
+                        </button>
                       </div>
                     </div>
                   ))
@@ -216,18 +331,37 @@ const DashboardPage = () => {
 
           <div className="dashboard-sections">
             <section className="dashboard-section">
-              <h2>Accounts Overview</h2>
-              <div className="accounts-list">
+              <h2>Accounts Overview</h2>              <div className="accounts-list">
                 {accounts.length > 0 ? (
                   accounts.map(account => (
                     <div className="account-item" key={account._id}>
-                      <div className="account-info">
-                        <h3>{account.name || 'Unnamed Account'}</h3>
-                        <p className="account-type">{account.type || 'N/A'}</p>
+                      <div className="account-details">
+                        <div className="account-info">
+                          <h3>{account.name || 'Unnamed Account'}</h3>
+                          <p className="account-type">{account.type || 'N/A'}</p>
+                        </div>
+                        <p className={Number(account.balance) < 0 ? 'negative' : 'positive'}>
+                          ${formatCurrency(account.balance)}
+                        </p>
                       </div>
-                      <p className={Number(account.balance) < 0 ? 'negative' : 'positive'}>
-                        ${formatCurrency(account.balance)}
-                      </p>
+                      <div className="account-actions">
+                        <button 
+                          className="action-btn edit-btn" 
+                          onClick={() => handleEditAccount(account)}
+                          aria-label="Edit account"
+                          title="Edit account"
+                        >
+                          ✏️
+                        </button>
+                        <button 
+                          className="action-btn delete-btn" 
+                          onClick={() => handleDeleteClick(account)}
+                          aria-label="Delete account"
+                          title="Delete account"
+                        >
+                          🗑️
+                        </button>
+                      </div>
                     </div>
                   ))
                 ) : (
@@ -263,6 +397,52 @@ const DashboardPage = () => {
                 )}
               </div>
             </section>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal for Accounts */}
+      {showDeleteModal && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-header">
+              <h3>Delete Account</h3>
+            </div>
+            <div className="modal-content">
+              <p>Are you sure you want to delete the account "{selectedAccount?.name}"?</p>
+              <p>This action cannot be undone. All transaction history for this account will be lost.</p>
+            </div>
+            <div className="modal-actions">
+              <button className="cancel-modal-btn" onClick={handleCancelDelete}>
+                Cancel
+              </button>
+              <button className="confirm-delete-btn" onClick={handleConfirmDelete}>
+                Delete Account
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal for Budgets */}
+      {showDeleteBudgetModal && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-header">
+              <h3>Delete Budget</h3>
+            </div>
+            <div className="modal-content">
+              <p>Are you sure you want to delete the budget for "{selectedBudget?.category}"?</p>
+              <p>This action cannot be undone.</p>
+            </div>
+            <div className="modal-actions">
+              <button className="cancel-modal-btn" onClick={handleCancelBudgetDelete}>
+                Cancel
+              </button>
+              <button className="confirm-delete-btn" onClick={handleConfirmBudgetDelete}>
+                Delete Budget
+              </button>
+            </div>
           </div>
         </div>
       )}

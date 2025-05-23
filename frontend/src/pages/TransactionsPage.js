@@ -8,7 +8,7 @@ import { useAuth } from "../contexts/AuthContext";
 const TRANSACTION_CATEGORIES = [
   'Housing', 'Transportation', 'Food', 'Utilities', 'Healthcare',
   'Insurance', 'Debt', 'Personal', 'Entertainment', 'Education',
-  'Salary', 'Gift', 'Refund', 'Investment', 'Transfer', 'Other'
+  'Salary', 'Gifts', 'Refund', 'Investment', 'Transfer', 'Other'
 ];
 
 // Sample transaction data for fallback
@@ -473,16 +473,15 @@ const TransactionsPage = () => {
                     <span className="info-value">{transaction.toAccount?.name || 'Unknown'}</span>
                   </div>
                 )}
-              </div>
-              <div className="transaction-card-actions">
+              </div>              <div className="transaction-card-actions">
                 <button className="edit-btn">
-                  <p>Edit</p>
+                  <i className="fas fa-edit"></i>
                 </button>
                 <button 
                   className="delete-btn"
                   onClick={() => handleDeleteTransaction(transaction._id)}
                 >
-                  Delete
+                  <i className="fas fa-trash"></i>
                 </button>
               </div>
             </div>

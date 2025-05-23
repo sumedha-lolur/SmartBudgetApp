@@ -16,14 +16,14 @@ const budgetSchema = new mongoose.Schema(
       type: Number,
       required: [true, 'Please specify budget amount'],
       min: [0, 'Budget amount cannot be negative'],
-    },
+    },    
     category: {
       type: String,
       required: [true, 'Please specify a category'],
       enum: [
         'Housing', 'Transportation', 'Food', 'Utilities', 'Healthcare',
         'Insurance', 'Debt', 'Personal', 'Entertainment', 'Education',
-        'Savings', 'Gifts/Donations', 'Other'
+        'Savings', 'Gifts', 'Donations', 'Other'
       ],
     },
     startDate: {

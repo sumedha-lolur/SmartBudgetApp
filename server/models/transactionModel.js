@@ -33,7 +33,7 @@ const transactionSchema = new mongoose.Schema(
       enum: [
         'Housing', 'Transportation', 'Food', 'Utilities', 'Healthcare',
         'Insurance', 'Debt', 'Personal', 'Entertainment', 'Education',
-        'Salary', 'Gift', 'Refund', 'Investment', 'Transfer', 'Other'
+        'Salary', 'Gifts', 'Refund', 'Investment', 'Transfer', 'Other'
       ],
     },
     date: {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 import DashboardNav from "../components/DashboardNav";
 import Footer from "../components/Footer";
 import { useAuth } from "../contexts/AuthContext";
@@ -9,6 +9,9 @@ const BudgetFormPage = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { id } = useParams(); // Get budget ID from URL if in edit mode
+  const isEditMode = !!id;
+  
   const [formData, setFormData] = useState({
     budgetName: "",
     budgetAmount: "",
@@ -21,12 +24,59 @@ const BudgetFormPage = () => {
   
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [isLoadingBudget, setIsLoadingBudget] = useState(isEditMode);
   useEffect(() => {
     // Redirect to login if not authenticated
     if (!currentUser) {
       navigate("/login", { state: { from: location }, replace: true });
     }
   }, [currentUser, navigate, location]);
+  
+  // Fetch budget data if in edit mode
+  useEffect(() => {
+    if (isEditMode && currentUser) {
+      const fetchBudgetData = async () => {
+        try {
+          const response = await fetch(`http://localhost:5000/api/budgets/${id}`, {
+            headers: {
+              'Authorization': `Bearer ${currentUser.token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to fetch budget data');
+          }
+          
+          const budgetData = await response.json();
+          
+          // Format dates to YYYY-MM-DD for input fields
+          const formatDate = (dateString) => {
+            const date = new Date(dateString);
+            return date.toISOString().split('T')[0];
+          };
+          
+          setFormData({
+            budgetName: budgetData.name || "",
+            budgetAmount: budgetData.amount?.toString() || "",
+            category: budgetData.category || "Housing",
+            startDate: formatDate(budgetData.startDate) || "",
+            endDate: formatDate(budgetData.endDate) || "",
+            budgetType: "monthly", // Assuming this is not stored in the database
+            description: budgetData.description || ""
+          });
+          
+          setIsLoadingBudget(false);
+        } catch (error) {
+          console.error('Error fetching budget:', error);
+          alert("Failed to fetch budget details.");
+          navigate("/dashboard");
+        }
+      };
+
+      fetchBudgetData();
+    }
+  }, [id, isEditMode, navigate, currentUser]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -87,8 +137,7 @@ const BudgetFormPage = () => {
 
     setErrors(tempErrors);
     return isValid;
-  };
-  const handleSubmit = async (e) => {
+  };  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (validateForm()) {
@@ -106,40 +155,56 @@ const BudgetFormPage = () => {
         };
         
         // Send request to backend API
-        const response = await fetch('http://localhost:5000/api/budgets', {
-          method: 'POST',
+        const url = isEditMode 
+          ? `http://localhost:5000/api/budgets/${id}` 
+          : 'http://localhost:5000/api/budgets';
+        
+        const response = await fetch(url, {
+          method: isEditMode ? 'PUT' : 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${currentUser.token}`
           },
           body: JSON.stringify(budgetData),
         });
-        
-        const data = await response.json();
+          const data = await response.json();
         
         if (!response.ok) {
-          throw new Error(data.message || 'Failed to create budget');
+          throw new Error(data.message || `Failed to ${isEditMode ? 'update' : 'create'} budget`);
         }
         
-        console.log("Budget created successfully:", data);
+        console.log(`Budget ${isEditMode ? 'updated' : 'created'} successfully:`, data);
+        
+        // Show success alert
+        alert(`Budget ${isEditMode ? 'updated' : 'created'} successfully!`);
+        
         // Redirect to dashboard
         navigate("/dashboard");
       } catch (error) {
-        console.error("Error creating budget:", error);
-        setErrors({ general: error.message || "Failed to create budget. Please try again." });
+        console.error(`Error ${isEditMode ? 'updating' : 'creating'} budget:`, error);
+        setErrors({ general: error.message || `Failed to ${isEditMode ? 'update' : 'create'} budget. Please try again.` });
       } finally {
         setLoading(false);
       }
     }
   };
-
   return (
     <div className="budget-page">
       <DashboardNav />
       <div className="budget-container">
-        <div className="budget-form-container">
-          <h1>Create a New Budget</h1>
-          <p className="budget-subtitle">Set up your budget to start tracking your finances effectively</p>
+        {isLoadingBudget ? (
+          <div className="loading-container">
+            <div className="loading-spinner"></div>
+            <p>Loading budget information...</p>
+          </div>
+        ) : (
+          <div className="budget-form-container">
+            <h1>{isEditMode ? "Edit Budget" : "Create a New Budget"}</h1>
+            <p className="budget-subtitle">
+              {isEditMode 
+                ? "Update your budget to better manage your finances" 
+                : "Set up your budget to start tracking your finances effectively"}
+            </p>
           
           <form className="budget-form" onSubmit={handleSubmit}>
             {errors.general && <div className="error-message general">{errors.general}</div>}
@@ -196,7 +261,7 @@ const BudgetFormPage = () => {
                 <option value="Entertainment">Entertainment</option>
                 <option value="Education">Education</option>
                 <option value="Savings">Savings</option>
-                <option value="Gifts/Donations">Gifts/Donations</option>
+                <option value="Gifts">Gifts</option>
                 <option value="Other">Other</option>
               </select>
               {errors.category && <div className="error-message">{errors.category}</div>}
@@ -255,20 +320,23 @@ const BudgetFormPage = () => {
                 placeholder="Add additional details about this budget"
               ></textarea>
             </div>
-            
-            <button 
+              <button 
               type="submit" 
               className="budget-button"
               disabled={loading}
             >
-              {loading ? "Creating Budget..." : "Create Budget"}
-            </button>
+              {loading 
+                ? (isEditMode ? "Updating Budget..." : "Creating Budget...")
+                : (isEditMode ? "Update Budget" : "Create Budget")
+              }            </button>
           </form>
           
           <div className="budget-footer">
             <p>Need help? <a href="/contact">Contact Support</a></p>
           </div>
         </div>
+        )}
+        
         <div className="budget-image-container">
           <div className="budget-overlay">
             <h2>Plan your finances wisely</h2>

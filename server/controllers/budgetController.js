@@ -327,18 +327,65 @@ const calculateSpentAmount = async (userId, category, startDate, endDate) => {
       return tracking.spentAmount;
     }
   }
-  
   // Fallback to calculating from transactions
-  const transactions = await Transaction.find({
+  console.log(`Searching for transactions in category: '${category}'`);
+  
+  // Helper function to normalize category names
+  const normalizeCategory = (cat) => {
+    // Remove extra whitespace and make case insensitive comparison
+    return cat.trim().toLowerCase().replace(/\s+/g, ' ');
+  };
+  
+  // Check all transactions regardless of category to see what we're working with
+  const allTransactions = await Transaction.find({
     user: userId,
-    category,
     type: 'expense',
     date: { $gte: startDate, $lte: endDate },
   });
-
-  console.log(`Found ${transactions.length} transactions for category ${category}`);
-  const total = transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+  
+  console.log(`All categories found:`, allTransactions.map(t => t.category));
+  console.log(`Normalized budget category:`, normalizeCategory(category));
+  console.log(`Normalized transaction categories:`, allTransactions.map(t => normalizeCategory(t.category)));
+    // Now do the specific category query with both exact match and normalized match
+  // We'll also check for transactions with similar categories
+  const normalizedCategorySearch = normalizeCategory(category);
+  
+  const transactions = await Transaction.find({
+    user: userId,
+    date: { $gte: startDate, $lte: endDate },
+    $and: [
+      // Must be expense type
+      { type: 'expense' },
+      {
+        $or: [
+          // Exact match
+          { category },
+          // Case insensitive match
+          { category: { $regex: new RegExp(`^${category}$`, 'i') } },
+          // Normalized match - removes spacing issues
+          { category: { $regex: new RegExp(`^${normalizedCategorySearch.replace(/[\/\\^$*+?.()|[\]{}]/g, '\\$&')}$`, 'i') } },
+          ...(category === 'Gifts' ? [
+            { category: 'Gifts' },
+            { category: 'Donations' },
+            { category: { $regex: /gifts.*donations/i } },
+            { category: { $regex: /donations.*gifts/i } }
+          ] : [])
+        ]
+      }
+    ]
+  });
+  console.log(`Found ${transactions.length} transactions for category ${category}`);  // Since all expense transactions have positive amounts in the DB but represent money spent,
+  // we need to actually treat them as spent amounts
+  const total = transactions.reduce((sum, transaction) => sum + Math.abs(transaction.amount), 0);
   console.log(`Total spent for ${category}: ${total}`);
+  
+  // Log each transaction for debugging
+  if (transactions.length > 0) {
+    console.log('Transactions found:');
+    transactions.forEach(t => {
+      console.log(`- ${t._id}: ${t.description}, Category: ${t.category}, Amount: ${t.amount}`);
+    });
+  }
   
   // If we found a budget but no tracking, create one now
   if (budget && total > 0) {
