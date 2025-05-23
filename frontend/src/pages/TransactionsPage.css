@@ -216,18 +216,18 @@
   overflow-x: auto;
 }
 
-.loading-spinner {
+.loading-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 60px 0;
-  color: #94a3b8;
 }
 
-.loading-spinner i {
-  font-size: 2rem;
-  margin-bottom: 15px;
+.loading-message {
+  font-size: 1.2rem;
+  color: #64748b;
+  text-align: center;
 }
 
 .transactions-list {
@@ -286,36 +286,34 @@ td.negative {
   gap: 8px;
 }
 
-.edit-btn, .delete-btn {
+.action-btn {
   width: 32px;
   height: 32px;
   border: none;
-  border-radius: 5px;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease;
+  background: transparent;
+  font-size: 1.2rem;
 }
 
 .edit-btn {
-  background-color: #f1f5f9;
-  color: #475569;
+  color: #0ea5e9;
 }
 
 .edit-btn:hover {
-  background-color: #e2e8f0;
-  color: #334155;
+  background-color: rgba(14, 165, 233, 0.1);
 }
 
 .delete-btn {
-  background-color: #fee2e2;
   color: #ef4444;
 }
 
 .delete-btn:hover {
-  background-color: #fecaca;
-  color: #dc2626;
+  background-color: rgba(239, 68, 68, 0.1);
 }
 
 /* No Transactions */

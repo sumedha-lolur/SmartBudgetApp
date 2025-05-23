@@ -123,6 +123,10 @@ const TransactionsPage = () => {
     toAccount: "",
     notes: ""
   });
+  // For the Edit Transaction modal
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState(null);
+  
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   // Get unique categories from actual data for filter dropdowns
@@ -268,38 +272,37 @@ const TransactionsPage = () => {
       }));
     }
   };
-
   // Validate the transaction form
-  const validateForm = () => {
+  const validateForm = (formData = transactionForm) => {
     const errors = {};
     
-    if (!transactionForm.account) {
+    if (!formData.account) {
       errors.account = 'Please select an account';
     }
     
-    if (!transactionForm.amount || parseFloat(transactionForm.amount) <= 0) {
+    if (!formData.amount || parseFloat(formData.amount) <= 0) {
       errors.amount = 'Please enter a valid amount greater than 0';
     }
     
-    if (!transactionForm.description.trim()) {
+    if (!formData.description?.trim()) {
       errors.description = 'Please enter a description';
     }
     
-    if (!transactionForm.category) {
+    if (!formData.category) {
       errors.category = 'Please select a category';
     }
     
-    if (!transactionForm.date) {
+    if (!formData.date) {
       errors.date = 'Please select a date';
     }
     
     // For transfers, validate the destination account
-    if (transactionForm.type === 'transfer') {
-      if (!transactionForm.toAccount) {
+    if (formData.type === 'transfer') {
+      if (!formData.toAccount) {
         errors.toAccount = 'Please select a destination account';
       }
       
-      if (transactionForm.toAccount === transactionForm.account) {
+      if (formData.toAccount === formData.account) {
         errors.toAccount = 'Cannot transfer to the same account';
       }
     }
@@ -401,6 +404,115 @@ const TransactionsPage = () => {
     }
   };
 
+  // Handle editing a transaction
+  const handleEditTransaction = (transaction) => {
+    // Prepare the form data for editing
+    const formData = {
+      _id: transaction._id,
+      account: transaction.account?._id || transaction.account,
+      type: transaction.type || 'expense',
+      amount: Math.abs(Number(transaction.amount)).toString(),
+      description: transaction.description || '',
+      category: transaction.category || 'Other',
+      date: transaction.date ? new Date(transaction.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      notes: transaction.notes || '',
+      toAccount: transaction.toAccount?._id || transaction.toAccount || ''
+    };
+    
+    // Set the form data and toggle the edit modal
+    setEditingTransaction(formData);
+    setShowEditModal(true);
+  };
+
+  // Handle saving edited transaction
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateForm(editingTransaction)) {
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      // Prepare transaction data for update
+      const transactionData = {
+        account: editingTransaction.account,
+        type: editingTransaction.type,
+        amount: parseFloat(editingTransaction.amount),
+        description: editingTransaction.description,
+        category: editingTransaction.category,
+        date: editingTransaction.date,
+        notes: editingTransaction.notes
+      };
+      
+      // Add toAccount for transfers
+      if (editingTransaction.type === 'transfer' && editingTransaction.toAccount) {
+        transactionData.toAccount = editingTransaction.toAccount;
+      }
+      
+      // Send request to API
+      const response = await fetch(`http://localhost:5000/api/transactions/${editingTransaction._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${currentUser.token}`
+        },
+        body: JSON.stringify(transactionData)
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to update transaction');
+      }
+      
+      // Close modal and reset editing state
+      setShowEditModal(false);
+      setEditingTransaction(null);
+      
+      // Refresh transactions
+      fetchTransactions();
+    } catch (error) {
+      console.error('Error updating transaction:', error);
+      setFormErrors({
+        ...formErrors,
+        general: error.message || 'Something went wrong. Please try again.'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handle form change for edit modal
+  const handleEditFormChange = (e) => {
+    const { name, value } = e.target;
+    
+    // Special handling for amount to ensure it's always positive in the form
+    if (name === 'amount') {
+      // Remove any negative signs and non-numeric characters except decimal point
+      const sanitizedValue = value.replace(/-/g, '').replace(/[^\d.]/g, '');
+      
+      setEditingTransaction(prev => ({
+        ...prev,
+        [name]: sanitizedValue
+      }));
+    } else {
+      setEditingTransaction(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
+    
+    // Clear error for this field if any
+    if (formErrors[name]) {
+      setFormErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters(prev => ({
@@ -473,14 +585,34 @@ const TransactionsPage = () => {
                   </div>
                 )}
               </div>              <div className="transaction-card-actions">
-                <button className="edit-btn">
-                  <i className="fas fa-edit"></i>
+                <button 
+                  className="action-btn edit-btn"
+                  title="Edit transaction"
+                  aria-label="Edit transaction"
+                  onClick={() => {
+                    setEditingTransaction(transaction);
+                    setTransactionForm({
+                      account: transaction.account._id,
+                      type: transaction.type,
+                      amount: Math.abs(transaction.amount),
+                      description: transaction.description,
+                      category: transaction.category,
+                      date: transaction.date.split('T')[0],
+                      toAccount: transaction.toAccount ? transaction.toAccount._id : "",
+                      notes: transaction.notes
+                    });
+                    setShowEditModal(true);
+                  }}
+                >
+                  ✏️
                 </button>
                 <button 
-                  className="delete-btn"
+                  className="action-btn delete-btn"
+                  title="Delete transaction"
+                  aria-label="Delete transaction"
                   onClick={() => handleDeleteTransaction(transaction._id)}
                 >
-                  <i className="fas fa-trash"></i>
+                  🗑️
                 </button>
               </div>
             </div>
@@ -535,17 +667,35 @@ const TransactionsPage = () => {
                   )}
                 </td>                <td className={transaction.type === 'expense' ? 'negative' : 'positive'}>
                   Rs. {Math.abs(transaction.amount).toFixed(2)}
-                </td>
-                <td className="action-buttons">
-                  <button className="edit-btn" title="Edit">
-                    <i className="fas fa-edit"></i>
+                </td>                <td className="action-buttons">
+                  <button 
+                    className="action-btn edit-btn" 
+                    title="Edit transaction"
+                    aria-label="Edit transaction"
+                    onClick={() => {
+                      setEditingTransaction(transaction);
+                      setTransactionForm({
+                        account: transaction.account._id,
+                        type: transaction.type,
+                        amount: Math.abs(transaction.amount),
+                        description: transaction.description,
+                        category: transaction.category,
+                        date: transaction.date.split('T')[0],
+                        toAccount: transaction.toAccount ? transaction.toAccount._id : "",
+                        notes: transaction.notes
+                      });
+                      setShowEditModal(true);
+                    }}
+                  >
+                    ✏️
                   </button>
                   <button 
-                    className="delete-btn" 
-                    title="Delete"
+                    className="action-btn delete-btn" 
+                    title="Delete transaction"
+                    aria-label="Delete transaction"
                     onClick={() => handleDeleteTransaction(transaction._id)}
                   >
-                    <i className="fas fa-trash"></i>
+                    🗑️
                   </button>
                 </td>
               </tr>
@@ -738,6 +888,188 @@ const TransactionsPage = () => {
     );
   };
 
+  // Render Edit Transaction Modal
+  const renderEditTransactionModal = () => {
+    if (!showEditModal) return null;
+    
+    return (
+      <div className="modal-overlay">
+        <div className="modal-content">
+          <div className="modal-header">
+            <h2>Edit Transaction</h2>
+            <button className="close-modal" onClick={() => setShowEditModal(false)}>×</button>
+          </div>
+          
+          <form className="transaction-form" onSubmit={handleSaveEdit}>
+            {formErrors.general && <div className="error-message">{formErrors.general}</div>}
+            
+            <div className="form-group">
+              <label>Transaction Type</label>
+              <div className="transaction-type-selector">
+                <button 
+                  type="button"
+                  className={`type-btn ${editingTransaction.type === 'expense' ? 'active' : ''}`}
+                  onClick={() => setEditingTransaction({...editingTransaction, type: 'expense'})}
+                >
+                  Expense
+                </button>
+                <button 
+                  type="button"
+                  className={`type-btn ${editingTransaction.type === 'income' ? 'active' : ''}`}
+                  onClick={() => setEditingTransaction({...editingTransaction, type: 'income'})}
+                >
+                  Income
+                </button>
+                <button 
+                  type="button"
+                  className={`type-btn ${editingTransaction.type === 'transfer' ? 'active' : ''}`}
+                  onClick={() => setEditingTransaction({...editingTransaction, type: 'transfer'})}
+                >
+                  Transfer
+                </button>
+              </div>
+            </div>
+            
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="account">From Account</label>
+                <select
+                  id="account"
+                  name="account"
+                  value={editingTransaction.account}
+                  onChange={handleEditFormChange}
+                  className={formErrors.account ? 'input-error' : ''}
+                >
+                  <option value="">Select Account</option>                  {accounts.map(account => (
+                    <option key={account._id} value={account._id}>
+                      {account.name} (Rs. {account.balance.toFixed(2)})
+                    </option>
+                  ))}
+                </select>
+                {formErrors.account && <div className="error-text">{formErrors.account}</div>}
+              </div>
+              
+              {editingTransaction.type === 'transfer' && (
+                <div className="form-group">
+                  <label htmlFor="toAccount">To Account</label>
+                  <select
+                    id="toAccount"
+                    name="toAccount"
+                    value={editingTransaction.toAccount}
+                    onChange={handleEditFormChange}
+                    className={formErrors.toAccount ? 'input-error' : ''}
+                  >
+                    <option value="">Select Account</option>
+                    {accounts
+                      .filter(account => account._id !== editingTransaction.account)
+                      .map(account => (
+                        <option key={account._id} value={account._id}>
+                          {account.name} (Rs. {account.balance.toFixed(2)})
+                        </option>
+                      ))}
+                  </select>
+                  {formErrors.toAccount && <div className="error-text">{formErrors.toAccount}</div>}
+                </div>
+              )}
+            </div>
+              <div className="form-group">
+              <label htmlFor="amount">Amount</label>
+              <div className="input-with-icon">
+                <span className="currency-icon">Rs.</span>
+                <input
+                  type="text"
+                  id="amount"
+                  name="amount"
+                  value={editingTransaction.amount}
+                  onChange={handleEditFormChange}
+                  placeholder="0.00"
+                  className={formErrors.amount ? 'input-error' : ''}
+                />
+              </div>
+              {formErrors.amount && <div className="error-text">{formErrors.amount}</div>}
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="description">Description</label>
+              <input
+                type="text"
+                id="description"
+                name="description"
+                value={editingTransaction.description}
+                onChange={handleEditFormChange}
+                placeholder="e.g., Grocery shopping"
+                className={formErrors.description ? 'input-error' : ''}
+              />
+              {formErrors.description && <div className="error-text">{formErrors.description}</div>}
+            </div>
+            
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="category">Category</label>
+                <select
+                  id="category"
+                  name="category"
+                  value={editingTransaction.category}
+                  onChange={handleEditFormChange}
+                  className={formErrors.category ? 'input-error' : ''}
+                >
+                  {TRANSACTION_CATEGORIES.map(category => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+                {formErrors.category && <div className="error-text">{formErrors.category}</div>}
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="date">Date</label>
+                <input
+                  type="date"
+                  id="date"
+                  name="date"
+                  value={editingTransaction.date}
+                  onChange={handleEditFormChange}
+                  className={formErrors.date ? 'input-error' : ''}
+                />
+                {formErrors.date && <div className="error-text">{formErrors.date}</div>}
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="notes">Notes (Optional)</label>
+              <textarea
+                id="notes"
+                name="notes"
+                value={editingTransaction.notes}
+                onChange={handleEditFormChange}
+                placeholder="Add any additional details"
+              ></textarea>
+            </div>
+            
+            <div className="form-buttons">
+              <button 
+                type="button" 
+                className="cancel-btn" 
+                onClick={() => setShowEditModal(false)}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                className="submit-btn"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="transactions-page">
       <DashboardNav />
@@ -871,11 +1203,9 @@ const TransactionsPage = () => {
           </div>
         </div>
         
-        <div className="transactions-container">
-          {loading ? (
-            <div className="loading-spinner">
-              <i className="fas fa-spinner fa-spin"></i>
-              <p>Loading transactions...</p>
+        <div className="transactions-container">          {loading ? (
+            <div className="loading-container">
+              <p className="loading-message">Loading your transactions...</p>
             </div>
           ) : isMobileView ? (
             renderMobileCards()
@@ -885,6 +1215,7 @@ const TransactionsPage = () => {
         </div>
         
         {renderAddTransactionModal()}
+        {renderEditTransactionModal()}
       </main>
       
       <Footer />
