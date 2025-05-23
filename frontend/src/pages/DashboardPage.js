@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import DashboardNav from '../components/DashboardNav';
 import './DashboardPage.css';
 import { useAuth } from '../contexts/AuthContext';
+import { setupTransactionChangeListener } from '../utils/TransactionEvents';
 
 // Helper function to safely format currency values
 const formatCurrency = (value) => {
@@ -24,71 +25,84 @@ const DashboardPage = () => {
   const [showDeleteBudgetModal, setShowDeleteBudgetModal] = useState(false);
   const [selectedBudget, setSelectedBudget] = useState(null);
   
-  // Fetch user's data from the backend
-  useEffect(() => {
-    const fetchUserData = async () => {
-      if (!currentUser?.token) {
-        setLoading(false);
-        return;
+  // Define fetchUserData as a callback so it can be referenced in effects
+  const fetchUserData = useCallback(async () => {
+    if (!currentUser?.token) {
+      setLoading(false);
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      console.log('Dashboard: Fetching updated data');
+      
+      // Fetch accounts
+      const accountsResponse = await fetch('http://localhost:5000/api/accounts', {
+        headers: {
+          'Authorization': `Bearer ${currentUser.token}`
+        }
+      });
+      
+      // Fetch budgets
+      const budgetsResponse = await fetch('http://localhost:5000/api/budgets', {
+        headers: {
+          'Authorization': `Bearer ${currentUser.token}`
+        }
+      });
+      
+      // Fetch transactions
+      const transactionsResponse = await fetch('http://localhost:5000/api/transactions', {
+        headers: {
+          'Authorization': `Bearer ${currentUser.token}`
+        }
+      });
+      
+      if (!accountsResponse.ok || !budgetsResponse.ok || !transactionsResponse.ok) {
+        throw new Error('Failed to fetch data');
       }
       
-      try {
-        setLoading(true);
-        
-        // Fetch accounts
-        const accountsResponse = await fetch('http://localhost:5000/api/accounts', {
-          headers: {
-            'Authorization': `Bearer ${currentUser.token}`
-          }
-        });
-        
-        // Fetch budgets
-        const budgetsResponse = await fetch('http://localhost:5000/api/budgets', {
-          headers: {
-            'Authorization': `Bearer ${currentUser.token}`
-          }
-        });
-        
-        // Fetch transactions
-        const transactionsResponse = await fetch('http://localhost:5000/api/transactions', {
-          headers: {
-            'Authorization': `Bearer ${currentUser.token}`
-          }
-        });
-        
-        if (!accountsResponse.ok || !budgetsResponse.ok || !transactionsResponse.ok) {
-          throw new Error('Failed to fetch data');
-        }
-          const accountsData = await accountsResponse.json();
-        const budgetsData = await budgetsResponse.json();
-        const transactionsData = await transactionsResponse.json();
-        
-        // Log data for debugging
-        console.log('Budgets data received:', budgetsData);
-        console.log('Sample budget object structure:', budgetsData.length > 0 ? budgetsData[0] : 'No budget data');
-        
-        // Ensure data has the expected structure before setting state
-        setAccounts(Array.isArray(accountsData) ? accountsData : []);
-        setBudgets(Array.isArray(budgetsData) ? budgetsData : []);
-        setTransactions(Array.isArray(transactionsData) ? transactionsData : []);
-      } catch (err) {
-        console.error('Error fetching user data:', err);
-        setError('Failed to load your dashboard data. Please try again later.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchUserData();
+      const accountsData = await accountsResponse.json();
+      const budgetsData = await budgetsResponse.json();
+      const transactionsData = await transactionsResponse.json();
+      
+      // Log data for debugging
+      console.log('Budgets data received:', budgetsData);
+      console.log('Sample budget object structure:', budgetsData.length > 0 ? budgetsData[0] : 'No budget data');
+      
+      // Ensure data has the expected structure before setting state
+      setAccounts(Array.isArray(accountsData) ? accountsData : []);
+      setBudgets(Array.isArray(budgetsData) ? budgetsData : []);
+      setTransactions(Array.isArray(transactionsData) ? transactionsData : []);
+    } catch (err) {
+      console.error('Error fetching user data:', err);
+      setError('Failed to load your dashboard data. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
   }, [currentUser]);
-    // Calculate total balance across all accounts
+
+  // Listen for transaction changes from other components
+  useEffect(() => {
+    // Use our utility to setup the listener
+    console.log('Setting up transaction change listener in Dashboard');
+    return setupTransactionChangeListener(fetchUserData);
+  }, [fetchUserData]);
+  
+  // Initial data fetch
+  useEffect(() => {
+    fetchUserData();
+  }, [fetchUserData]);
+
+  // Calculate total balance across all accounts
   const totalBalance = accounts?.length ? accounts.reduce((sum, account) => sum + (Number(account.balance) || 0), 0) : 0;
-    // Calculate total budgeted and spent amounts
+  
+  // Calculate total budgeted and spent amounts
   const totalBudgeted = budgets?.length ? budgets.reduce((sum, budget) => sum + (Number(budget.amount) || 0), 0) : 0;
   const totalSpent = budgets?.length ? budgets.reduce((sum, budget) => sum + (Number(budget.spent) || 0), 0) : 0;
-  console.log('Total budgeted:', totalBudgeted, 'Total spent:', totalSpent);
+  console.log('Dashboard totals - Budgeted:', totalBudgeted, 'Spent:', totalSpent);
   const remainingBudget = totalBudgeted - totalSpent;
-    // Handle editing an account
+
+  // Handle editing an account
   const handleEditAccount = (account) => {
     // Navigate to edit account page with the account ID
     window.location.href = `/edit-account/${account._id}`;

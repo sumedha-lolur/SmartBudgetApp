@@ -3,6 +3,7 @@ import DashboardNav from "../components/DashboardNav";
 import Footer from "../components/Footer";
 import "./TransactionsPage.css";
 import { useAuth } from "../contexts/AuthContext";
+import { notifyTransactionChange } from "../utils/TransactionEvents";
 
 // Transaction categories from the model
 const TRANSACTION_CATEGORIES = [
@@ -211,16 +212,29 @@ const TransactionsPage = () => {
       if (!response.ok) {
         throw new Error('Failed to fetch transactions');
       }
-      
-      const data = await response.json();
+        const data = await response.json();
       const transactionsData = data.transactions || [];
       
-      // Format transactions for display
-      const formattedTransactions = transactionsData.map(t => ({
-        ...t,
-        // Get account name from populated account field
-        accountName: t.account?.name || 'Unknown Account'
-      }));
+      console.log('Transactions received from API:', transactionsData.length);
+      
+      // Format transactions for display and ensure all required properties are present
+      const formattedTransactions = transactionsData.map(t => {
+        // Ensure account is properly structured
+        let accountData = t.account;
+        if (typeof accountData === 'string') {
+          accountData = { _id: accountData, name: 'Unknown Account' };
+        }
+        
+        return {
+          ...t,
+          _id: t._id || `temp-${Math.random().toString(36).substr(2, 9)}`,
+          account: accountData,
+          accountName: accountData?.name || 'Unknown Account',
+          amount: t.amount || 0,
+          type: t.type || 'expense',
+          description: t.description || 'No description'
+        };
+      });
       
       setTransactions(formattedTransactions);
       setFilteredTransactions(formattedTransactions);
@@ -365,10 +379,12 @@ const TransactionsPage = () => {
         date: new Date().toISOString().split('T')[0],
         toAccount: "",
         notes: ""
-      });
-      
-      // Refresh transactions
+      });      // Refresh transactions
       fetchTransactions();
+      
+      // Notify the dashboard to update spent amounts
+      notifyTransactionChange();
+      console.log('New transaction added, notifying dashboard to refresh');
     } catch (error) {
       console.error('Error creating transaction:', error);
       setFormErrors({
@@ -393,20 +409,22 @@ const TransactionsPage = () => {
         
         if (!response.ok) {
           throw new Error('Failed to delete transaction');
-        }
-        
-        // Refresh transactions
+        }        // Refresh transactions
         fetchTransactions();
+        
+        // Notify the dashboard to update spent amounts
+        notifyTransactionChange();
+        console.log('Transaction deleted, notifying dashboard to refresh');
       } catch (error) {
         console.error('Error deleting transaction:', error);
         alert('Failed to delete transaction. Please try again.');
       }
     }
-  };
-
-  // Handle editing a transaction
+  };  // Handle editing a transaction
   const handleEditTransaction = (transaction) => {
-    // Prepare the form data for editing
+    console.log('Edit transaction initiated for:', transaction);
+    
+    // Prepare the form data for editing - handle both populated and unpopulated account/toAccount
     const formData = {
       _id: transaction._id,
       account: transaction.account?._id || transaction.account,
@@ -419,11 +437,12 @@ const TransactionsPage = () => {
       toAccount: transaction.toAccount?._id || transaction.toAccount || ''
     };
     
+    console.log('Prepared form data for editing:', formData);
+    
     // Set the form data and toggle the edit modal
     setEditingTransaction(formData);
     setShowEditModal(true);
   };
-
   // Handle saving edited transaction
   const handleSaveEdit = async (e) => {
     e.preventDefault();
@@ -451,6 +470,9 @@ const TransactionsPage = () => {
         transactionData.toAccount = editingTransaction.toAccount;
       }
       
+      console.log('Updating transaction with data:', transactionData);
+      console.log('Transaction ID:', editingTransaction._id);
+      
       // Send request to API
       const response = await fetch(`http://localhost:5000/api/transactions/${editingTransaction._id}`, {
         method: 'PUT',
@@ -465,14 +487,17 @@ const TransactionsPage = () => {
       
       if (!response.ok) {
         throw new Error(data.message || 'Failed to update transaction');
-      }
-      
-      // Close modal and reset editing state
+      }      // Close modal and reset editing state
       setShowEditModal(false);
       setEditingTransaction(null);
       
       // Refresh transactions
       fetchTransactions();
+      
+      // Notify the dashboard to update spent amounts
+      // This will trigger a dashboard refresh in other components via localStorage
+      notifyTransactionChange();
+      console.log('Transaction updated, notifying dashboard to refresh');
     } catch (error) {
       console.error('Error updating transaction:', error);
       setFormErrors({
@@ -483,7 +508,6 @@ const TransactionsPage = () => {
       setIsSubmitting(false);
     }
   };
-
   // Handle form change for edit modal
   const handleEditFormChange = (e) => {
     const { name, value } = e.target;
@@ -511,6 +535,8 @@ const TransactionsPage = () => {
         [name]: ''
       }));
     }
+    
+    console.log(`Edit form field ${name} updated to:`, value);
   };
 
   const handleFilterChange = (e) => {
@@ -589,20 +615,7 @@ const TransactionsPage = () => {
                   className="action-btn edit-btn"
                   title="Edit transaction"
                   aria-label="Edit transaction"
-                  onClick={() => {
-                    setEditingTransaction(transaction);
-                    setTransactionForm({
-                      account: transaction.account._id,
-                      type: transaction.type,
-                      amount: Math.abs(transaction.amount),
-                      description: transaction.description,
-                      category: transaction.category,
-                      date: transaction.date.split('T')[0],
-                      toAccount: transaction.toAccount ? transaction.toAccount._id : "",
-                      notes: transaction.notes
-                    });
-                    setShowEditModal(true);
-                  }}
+                  onClick={() => handleEditTransaction(transaction)}
                 >
                   ✏️
                 </button>
@@ -667,25 +680,11 @@ const TransactionsPage = () => {
                   )}
                 </td>                <td className={transaction.type === 'expense' ? 'negative' : 'positive'}>
                   Rs. {Math.abs(transaction.amount).toFixed(2)}
-                </td>                <td className="action-buttons">
-                  <button 
+                </td>                <td className="action-buttons">                  <button 
                     className="action-btn edit-btn" 
                     title="Edit transaction"
                     aria-label="Edit transaction"
-                    onClick={() => {
-                      setEditingTransaction(transaction);
-                      setTransactionForm({
-                        account: transaction.account._id,
-                        type: transaction.type,
-                        amount: Math.abs(transaction.amount),
-                        description: transaction.description,
-                        category: transaction.category,
-                        date: transaction.date.split('T')[0],
-                        toAccount: transaction.toAccount ? transaction.toAccount._id : "",
-                        notes: transaction.notes
-                      });
-                      setShowEditModal(true);
-                    }}
+                    onClick={() => handleEditTransaction(transaction)}
                   >
                     ✏️
                   </button>
