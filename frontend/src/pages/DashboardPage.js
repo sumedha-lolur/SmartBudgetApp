@@ -216,12 +216,12 @@ const DashboardPage = () => {
           <div className="dashboard-summary" id='dashboard-summary'>
             <div className="summary-card">
               <h2>Account Balance</h2>
-              <p className="summary-amount">${formatCurrency(totalBalance)}</p>
+              <p className="summary-amount">Rs. {formatCurrency(totalBalance)}</p>
             </div>
             
             <div className="summary-card">
               <h2>Monthly Budget</h2>
-              <p className="summary-amount">${formatCurrency(totalBudgeted)}</p>
+              <p className="summary-amount">Rs. {formatCurrency(totalBudgeted)}</p>
               <div className="budget-progress">
                 <div 
                   className="budget-progress-bar" 
@@ -229,14 +229,14 @@ const DashboardPage = () => {
                 ></div>
               </div>
               <p className="budget-status">
-                ${formatCurrency(totalSpent)} spent of ${formatCurrency(totalBudgeted)}
+                Rs. {formatCurrency(totalSpent)} spent of Rs. {formatCurrency(totalBudgeted)}
               </p>
             </div>
             
             <div className="summary-card">
               <h2>Remaining Budget</h2>
               <p className={`summary-amount ${remainingBudget < 0 ? 'negative' : 'positive'}`}>
-                ${formatCurrency(remainingBudget)}
+                Rs. {formatCurrency(remainingBudget)}
               </p>
             </div>
           </div>
@@ -260,9 +260,8 @@ const DashboardPage = () => {
                         <tr key={transaction._id}>
                           <td>{transaction.date ? new Date(transaction.date).toLocaleDateString() : 'N/A'}</td>
                           <td>{transaction.description || 'N/A'}</td>
-                          <td>{transaction.category || 'N/A'}</td>
-                          <td className={Number(transaction.amount) < 0 ? 'negative' : 'positive'}>
-                            ${formatCurrency(Math.abs(Number(transaction.amount) || 0))}
+                          <td>{transaction.category || 'N/A'}</td>                          <td className={Number(transaction.amount) < 0 ? 'negative' : 'positive'}>
+                            Rs. {formatCurrency(Math.abs(Number(transaction.amount) || 0))}
                           </td>
                         </tr>
                       ))
@@ -289,7 +288,7 @@ const DashboardPage = () => {
                               <span className="category-tag">{budget.category}</span>
                             }
                           </div>
-                          <p>${formatCurrency(budget.spent)} / ${formatCurrency(budget.amount)}</p>
+                          <p>Rs. {formatCurrency(budget.spent)} / Rs. {formatCurrency(budget.amount)}</p>
                         </div>
                         <div className="category-progress">
                           <div 
@@ -339,9 +338,8 @@ const DashboardPage = () => {
                         <div className="account-info">
                           <h3>{account.name || 'Unnamed Account'}</h3>
                           <p className="account-type">{account.type || 'N/A'}</p>
-                        </div>
-                        <p className={Number(account.balance) < 0 ? 'negative' : 'positive'}>
-                          ${formatCurrency(account.balance)}
+                        </div>                        <p className={Number(account.balance) < 0 ? 'negative' : 'positive'}>
+                          Rs. {formatCurrency(account.balance)}
                         </p>
                       </div>
                       <div className="account-actions">

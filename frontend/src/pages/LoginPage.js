@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./LoginPage.css";
 import Navbar from "../components/Navbar";
@@ -7,13 +7,20 @@ import { useAuth } from "../contexts/AuthContext";
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
     email: "",
     password: ""
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  
+  useEffect(() => {
+    // If user is already logged in, redirect to dashboard
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;

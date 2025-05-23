@@ -1,11 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import './DashboardNav.css';
 
 const DashboardNav = () => {
+  const { logout, currentUser } = useAuth();
+  const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState(null);
+  
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   // Check if screen size is mobile
   useEffect(() => {
@@ -87,8 +95,7 @@ const DashboardNav = () => {
               {/* <li><Link to="/create-budget" onClick={closeMenu}>Manage Budget</Link></li> */}
               <li><Link to="/contact" onClick={closeMenu}>Contact Us</Link></li>
             </ul>
-          </li>
-          <li className="nav-item">
+          </li>          <li className="nav-item">
             <Link 
               to="#" 
               onClick={(e) => isMobile ? toggleDropdown(2, e) : null}
@@ -101,6 +108,15 @@ const DashboardNav = () => {
               {/* <li><Link to="/add-account" onClick={closeMenu}>View Accounts</Link></li> */}
               <li><Link to="/transactions" onClick={closeMenu}>Transactions</Link></li>
             </ul>
+          </li>
+          <li className="nav-item logout-item">
+            <button 
+              onClick={handleLogout} 
+              className="logout-button"
+              title={`Logout ${currentUser?.firstName || 'User'}`}
+            >
+              Logout
+            </button>
           </li>
         </ul>
       </div>

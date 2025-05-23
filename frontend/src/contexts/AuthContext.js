@@ -41,7 +41,6 @@ export const AuthProvider = ({ children }) => {
     
     setCurrentUser(userData);
   };
-
   const logout = () => {
     // Clear user data from localStorage
     localStorage.removeItem('userToken');
@@ -50,6 +49,9 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('userLastName');
     localStorage.removeItem('userEmail');
     localStorage.removeItem('userPhone');
+    
+    // Set flag to prevent immediate redirect back to dashboard
+    localStorage.setItem('noRedirect', 'true');
     
     setCurrentUser(null);
   };

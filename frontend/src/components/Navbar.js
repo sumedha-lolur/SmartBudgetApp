@@ -3,11 +3,18 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import './Navbar.css';
 
-const Navbar = () => {
+const Navbar = ({ disableRedirect }) => {
   const navigate = useNavigate();
   const { currentUser, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  
+  // If disableRedirect is available, call it on component mount
+  useEffect(() => {
+    if (currentUser && disableRedirect) {
+      disableRedirect();
+    }
+  }, [currentUser, disableRedirect]);
 
   // Handle scroll effect for navbar
   useEffect(() => {

@@ -18,8 +18,7 @@
 
 .logo {
   color: #fff;
-  text-decoration: none;
-  font-weight: bold;
+  text-decoration: none;  font-weight: bold;
   font-size: 1.5rem;
 }
 
@@ -28,6 +27,25 @@
   display: flex;
   margin: 0;
   padding: 0;
+}
+
+.logout-item {
+  margin-left: 15px;
+}
+
+.logout-button {
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s;
+}
+
+.logout-button:hover {
+  background-color: #c0392b;
 }
 
 .nav-item {
@@ -152,6 +170,18 @@
     justify-content: center;
     align-items: center;
     padding: 0.8rem 1rem;
+  }
+  
+  .logout-item {
+    margin-left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 10px 0;
+  }
+  
+  .logout-button {
+    width: 80%;
   }
   
   .dropdown-arrow {

@@ -448,9 +448,8 @@ const TransactionsPage = () => {
             className={`transaction-card ${transaction.type}`}
           >
             <div className="transaction-card-header">
-              <h3>{transaction.description}</h3>
-              <span className={transaction.type === 'expense' ? 'negative' : 'positive'}>
-                ${Math.abs(transaction.amount).toFixed(2)}
+              <h3>{transaction.description}</h3>              <span className={transaction.type === 'expense' ? 'negative' : 'positive'}>
+                Rs. {Math.abs(transaction.amount).toFixed(2)}
               </span>
             </div>
             <div className="transaction-card-details">
@@ -534,9 +533,8 @@ const TransactionsPage = () => {
                   {transaction.type === 'transfer' && transaction.toAccount && (
                     <span className="transfer-indicator"> → {transaction.toAccount.name}</span>
                   )}
-                </td>
-                <td className={transaction.type === 'expense' ? 'negative' : 'positive'}>
-                  ${Math.abs(transaction.amount).toFixed(2)}
+                </td>                <td className={transaction.type === 'expense' ? 'negative' : 'positive'}>
+                  Rs. {Math.abs(transaction.amount).toFixed(2)}
                 </td>
                 <td className="action-buttons">
                   <button className="edit-btn" title="Edit">
@@ -610,10 +608,9 @@ const TransactionsPage = () => {
                   onChange={handleFormChange}
                   className={formErrors.account ? 'input-error' : ''}
                 >
-                  <option value="">Select Account</option>
-                  {accounts.map(account => (
+                  <option value="">Select Account</option>                  {accounts.map(account => (
                     <option key={account._id} value={account._id}>
-                      {account.name} (${account.balance.toFixed(2)})
+                      {account.name} (Rs. {account.balance.toFixed(2)})
                     </option>
                   ))}
                 </select>
@@ -635,7 +632,7 @@ const TransactionsPage = () => {
                       .filter(account => account._id !== transactionForm.account)
                       .map(account => (
                         <option key={account._id} value={account._id}>
-                          {account.name} (${account.balance.toFixed(2)})
+                          {account.name} (Rs. {account.balance.toFixed(2)})
                         </option>
                       ))}
                   </select>
@@ -643,11 +640,10 @@ const TransactionsPage = () => {
                 </div>
               )}
             </div>
-            
-            <div className="form-group">
+              <div className="form-group">
               <label htmlFor="amount">Amount</label>
               <div className="input-with-icon">
-                <span className="currency-icon">$</span>
+                <span className="currency-icon">Rs.</span>
                 <input
                   type="text"
                   id="amount"
@@ -845,29 +841,26 @@ const TransactionsPage = () => {
             <p>{filteredTransactions.length}</p>
           </div>
           <div className="summary-card income">
-            <h3>Total Income</h3>
-            <p>${filteredTransactions
+            <h3>Total Income</h3>            <p>Rs. {filteredTransactions
               .filter(t => t.type === 'income')
               .reduce((sum, t) => sum + t.amount, 0)
               .toFixed(2)}</p>
           </div>
           <div className="summary-card expense">
-            <h3>Total Expenses</h3>
-            <p>${filteredTransactions
+            <h3>Total Expenses</h3>            <p>Rs. {filteredTransactions
               .filter(t => t.type === 'expense')
               .reduce((sum, t) => sum + t.amount, 0)
               .toFixed(2)}</p>
           </div>
           <div className="summary-card balance">
-            <h3>Net Balance</h3>
-            <p className={
+            <h3>Net Balance</h3>            <p className={
               filteredTransactions.reduce((sum, t) => {
                 if (t.type === 'income') return sum + t.amount;
                 if (t.type === 'expense') return sum - t.amount;
                 return sum;
               }, 0) >= 0 ? "positive" : "negative"
             }>
-              ${filteredTransactions
+              Rs. {filteredTransactions
                 .reduce((sum, t) => {
                   if (t.type === 'income') return sum + t.amount;
                   if (t.type === 'expense') return sum - t.amount;
